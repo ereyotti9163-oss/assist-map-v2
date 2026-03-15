@@ -1,56 +1,86 @@
-// 1. 地図の初期化（まずは表示を優先）
+// 1. 初期設定
 const map = L.map('map').setView([34.8893, 135.7003], 15);
-
 L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
     maxZoom: 18,
     attribution: '© OpenCycleMap contributors'
 }).addTo(map);
 
-// 2. 変数の準備
+// 2. 変数管理
 let currentMarker = null;
+let isTracking = false; // 計測中かどうか
+let startTime = 0;
+let timerInterval = null;
+let totalDistance = 0;
+let lastLatLng = null;
 
-// 3. 位置情報が更新された時の処理
-function onLocationSuccess(position) {
+// 3. メーター更新関数
+function updateStats(position) {
+    if (!isTracking) return;
+
     const lat = position.coords.latitude;
     const lon = position.coords.longitude;
+    const currentLatLng = L.latLng(lat, lon);
 
+    // スピード更新 (m/s から km/h に変換)
+    const speedKmh = (position.coords.speed || 0) * 3.6;
+    document.getElementById('speed').textContent = speedKmh.toFixed(1);
+
+    // 距離計算
+    if (lastLatLng) {
+        const distanceStep = lastLatLng.distanceTo(currentLatLng) / 1000; // km単位
+        if (distanceStep > 0.002) { // 誤差（2m以内）は無視
+            totalDistance += distanceStep;
+            document.getElementById('dist').textContent = totalDistance.toFixed(1);
+        }
+    }
+    lastLatLng = currentLatLng;
+
+    // 現在地マーカー移動
     if (currentMarker) {
-        currentMarker.setLatLng([lat, lon]);
+        currentMarker.setLatLng(currentLatLng);
     } else {
-        currentMarker = L.circleMarker([lat, lon], {
-            radius: 10, // 少し大きくしました
-            color: '#FFFFFF',
-            weight: 3,
-            fillColor: '#0078FF',
-            fillOpacity: 1
+        currentMarker = L.circleMarker(currentLatLng, {
+            radius: 10, color: '#FFFFFF', weight: 3, fillColor: '#0078FF', fillOpacity: 1
         }).addTo(map);
-        // 初回だけ現在地にジャンプ
-        map.setView([lat, lon], 16);
+        map.setView(currentLatLng, 16);
     }
 }
 
-function onLocationError(error) {
-    console.error("位置情報の取得に失敗しました:", error.message);
+// 4. タイマー関数
+function runTimer() {
+    const now = Date.now();
+    const diff = new Date(now - startTime);
+    const h = String(diff.getUTCHours()).padStart(2, '0');
+    const m = String(diff.getUTCMinutes()).padStart(2, '0');
+    const s = String(diff.getUTCSeconds()).padStart(2, '0');
+    document.getElementById('time').textContent = `${h}:${m}:${s}`;
 }
 
-// 4. ブラウザが準備完了してから位置情報の監視を開始する
-window.onload = function() {
-    if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(onLocationSuccess, onLocationError, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-        });
+// 5. スタート・ストップ切り替え（赤いボタンに連動）
+function toggleTracking() {
+    const btn = document.querySelector('.btn-primary'); // 赤いボタン
+    
+    if (!isTracking) {
+        // スタート
+        isTracking = true;
+        startTime = Date.now() - (startTime ? (Date.now() - startTime) : 0);
+        timerInterval = setInterval(runTimer, 1000);
+        btn.style.animation = "pulse 1.5s infinite"; // 点滅演出
+        console.log("計測開始");
     } else {
-        alert("お使いのブラウザは位置情報に対応していません。");
-    }
-};
-
-// ボタン用：現在地にジャンプする関数
-function jumpToCurrentLocation() {
-    if (currentMarker) {
-        map.setView(currentMarker.getLatLng(), 16);
-    } else {
-        alert("現在地を取得中です。少しお待ちください。");
+        // ストップ
+        isTracking = false;
+        clearInterval(timerInterval);
+        btn.style.animation = "none";
+        console.log("計測停止");
     }
 }
+
+// 6. 位置情報の監視
+navigator.geolocation.watchPosition(updateStats, (err) => console.error(err), {
+    enableHighAccuracy: true,
+    maximumAge: 0
+});
+
+// HTML側のボタンから呼び出すためにグローバルに登録
+window.jumpToCurrentLocation = toggleTracking; 
