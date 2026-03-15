@@ -1,0 +1,90 @@
+/* 基本設定 */
+:root {
+    --primary-bg: #2c3e50;
+    --accent-color: #f1c40f; /* 視認性の高いイエロー */
+    --text-color: #ffffff;
+    --btn-size: 64px;
+}
+
+body, html {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-family: 'Roboto', sans-serif;
+    background-color: #000;
+}
+
+/* 地図全画面 */
+#map {
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* ダッシュボード（上部） */
+#dashboard {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 80px;
+    background: rgba(44, 62, 80, 0.9);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+    border-bottom: 3px solid var(--accent-color);
+    color: var(--text-color);
+}
+
+.stat-box { text-align: center; }
+.stat-box .label { display: block; font-size: 0.7rem; color: var(--accent-color); }
+.stat-box span { font-size: 1.8rem; font-weight: bold; }
+
+/* 操作ボタン（右下） */
+.controls {
+    position: absolute;
+    bottom: 30px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    z-index: 1000;
+}
+
+.main-btn {
+    width: var(--btn-size);
+    height: var(--btn-size);
+    border-radius: 50%;
+    border: none;
+    background: var(--primary-bg);
+    color: white;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    cursor: pointer;
+    border: 2px solid var(--accent-color);
+}
+
+.main-btn:active {
+    transform: scale(0.9);
+    background: var(--accent-color);
+    color: var(--primary-bg);
+}
+
+/* 標高パネル */
+#elevation-panel {
+    position: absolute;
+    bottom: 30px;
+    left: 20px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    z-index: 1000;
+    font-size: 0.9rem;
+}
+
+.hidden { display: none; }
+
+/* 地図タイルの彩度調整（ルートを見やすくするため） */
+.leaflet-tile-container {
+    filter: brightness(0.8) contrast(1.2);
+}

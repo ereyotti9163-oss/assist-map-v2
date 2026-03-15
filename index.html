@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Assist Cycle Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2c3e50">
+</head>
+<body>
+
+    <!-- 走行データ表示オーバーレイ -->
+    <div id="dashboard">
+        <div class="stat-box">
+            <span class="label">SPEED</span>
+            <span id="speed">0.0</span><small>km/h</small>
+        </div>
+        <div class="stat-box">
+            <span class="label">TIME</span>
+            <span id="timer">00:00:00</span>
+        </div>
+        <div class="stat-box">
+            <span class="label">DIST</span>
+            <span id="total-dist">0.0</span><small>km</small>
+        </div>
+    </div>
+
+    <!-- メインマップコンテナ -->
+    <div id="map"></div>
+
+    <!-- 操作ボタン群 -->
+    <div class="controls">
+        <button id="btn-recenter" class="main-btn" title="現在地に戻る">🎯</button>
+        <button id="btn-rotate" class="main-btn" title="回転モード切替">🧭</button>
+        <button id="btn-layers" class="main-btn">🗺️</button>
+    </div>
+
+    <!-- 標高・勾配ポップアップ（簡易表示用） -->
+    <div id="elevation-panel" class="hidden">
+        <p>標高: <span id="ele-val">-</span>m | 勾配: <span id="grade-val">-</span>%</p>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+    <script>
+        // Service Workerの登録
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then(() => {
+                console.log('Service Worker Registered');
+            });
+        }
+    </script>
+</body>
+</html>
