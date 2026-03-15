@@ -1,81 +1,54 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>アシストマップ v2</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
-        #map { height: 100%; width: 100%; }
-        
-        /* 検索バーのスタイル */
-        .search-container {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
-            z-index: 1000;
-            display: flex;
-            gap: 5px;
-        }
-        #search-input {
-            flex-grow: 1;
-            padding: 12px;
-            border-radius: 8px;
-            border: 2px solid #FFD700;
-            font-size: 16px;
-            outline: none;
-        }
-        #search-button {
-            padding: 10px 15px;
-            background: #FFD700;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+<style>
+    body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    #map { height: 100%; width: 100%; }
+    
+    /* 検索バーを少し下に下げる、またはボタンと被らないように調整 */
+    .search-container {
+        position: absolute;
+        top: 10px;
+        left: 50px; /* ＋ーボタンを避けるために左側に余白を作る */
+        right: 10px;
+        z-index: 1000;
+        display: flex;
+        gap: 5px;
+    }
+    #search-input {
+        flex-grow: 1;
+        padding: 10px;
+        border-radius: 8px;
+        border: 2px solid #FFD700;
+        font-size: 16px;
+        background: white;
+    }
+    #search-button {
+        padding: 10px 15px;
+        background: #FFD700;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+    }
 
-        /* 操作ボタン */
-        .controls {
-            position: absolute;
-            bottom: 30px;
-            right: 20px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: #222;
-            border: 3px solid #FFD700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        .btn img { width: 30px; height: 30px; }
-    </style>
-</head>
-<body>
+    /* 拡大縮小ボタン（＋ー）自体の位置を少し調整したい場合はここ */
+    .leaflet-top.leaflet-left {
+        top: 5px; /* 少し上に詰める */
+    }
 
-    <div class="search-container">
-        <input type="text" id="search-input" placeholder="地名や駅名で検索...">
-        <button id="search-button">検索</button>
-    </div>
-
-    <div id="map"></div>
-
-    <div class="controls">
-        <div class="btn" onclick="toggleFollow()">
-            <img src="https://cdn-icons-png.flaticon.com/512/9356/9356230.png" alt="追従">
-        </div>
-    </div>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="script.js"></script>
-</body>
-</html>
+    .controls {
+        position: absolute;
+        bottom: 30px;
+        right: 20px;
+        z-index: 1000;
+    }
+    .btn {
+        width: 65px;
+        height: 65px;
+        border-radius: 50%;
+        background: #222;
+        border: 3px solid #FFD700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+    .btn img { width: 35px; height: 35px; }
+</style>
