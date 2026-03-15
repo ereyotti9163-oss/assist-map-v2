@@ -6,14 +6,14 @@
     <title>アシストマップ v2</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #f0f0f0; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: white; }
         #map { height: 100%; width: 100%; }
         
-        /* 検索バー：左側のボタンを避けるために left を 60px に設定 */
+        /* 検索バー：少しだけ右に寄せて被りを最小限に */
         .search-container {
             position: absolute;
             top: 10px;
-            left: 60px; 
+            left: 45px; 
             right: 10px;
             z-index: 1000;
             display: flex;
@@ -21,23 +21,19 @@
         }
         #search-input {
             flex-grow: 1;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 8px;
+            border-radius: 5px;
             border: 2px solid #FFD700;
             font-size: 16px;
-            background: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
         #search-button {
-            padding: 10px 15px;
+            padding: 8px 12px;
             background: #FFD700;
             border: none;
-            border-radius: 8px;
+            border-radius: 5px;
             font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        /* 右下の操作ボタン */
         .controls {
             position: absolute;
             bottom: 30px;
@@ -45,23 +41,22 @@
             z-index: 1000;
         }
         .btn {
-            width: 65px;
-            height: 65px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             background: #222;
             border: 3px solid #FFD700;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
-        .btn img { width: 35px; height: 35px; }
+        .btn img { width: 30px; height: 30px; }
     </style>
 </head>
 <body>
 
     <div class="search-container">
-        <input type="text" id="search-input" placeholder="地名・駅名検索...">
+        <input type="text" id="search-input" placeholder="地名・駅名で検索">
         <button id="search-button">検索</button>
     </div>
 
