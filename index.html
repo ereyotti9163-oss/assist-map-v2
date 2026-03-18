@@ -3,72 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>アシストマップ v2</title>
+    <title>アシストマジック v2</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: white; }
-        #map { height: 100%; width: 100%; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #fff; font-family: sans-serif; }
+        #map { height: 100%; width: 100%; z-index: 1; }
         
-        /* 検索バー：少しだけ右に寄せて被りを最小限に */
+        /* 検索ボックス：上部に固定 */
         .search-container {
-            position: absolute;
-            top: 10px;
-            left: 45px; 
-            right: 10px;
-            z-index: 1000;
-            display: flex;
-            gap: 5px;
+            position: absolute; top: 15px; left: 10px; right: 10px; z-index: 1000;
+            display: flex; gap: 8px; background: rgba(255, 255, 255, 0.95);
+            padding: 10px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-        #search-input {
-            flex-grow: 1;
-            padding: 8px;
-            border-radius: 5px;
-            border: 2px solid #FFD700;
-            font-size: 16px;
-        }
-        #search-button {
-            padding: 8px 12px;
-            background: #FFD700;
-            border: none;
-            border-radius: 5px;
-            font-weight: bold;
-        }
+        #search-input { flex-grow: 1; padding: 12px; border-radius: 8px; border: 2px solid #FFD700; font-size: 16px; outline: none; }
+        #search-button { padding: 10px 20px; background: #FFD700; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-        .controls {
-            position: absolute;
-            bottom: 30px;
-            right: 20px;
-            z-index: 1000;
+        /* 現在地追従ボタン：右下に配置 */
+        .controls { position: absolute; bottom: 40px; right: 20px; z-index: 1000; }
+        .btn { 
+            width: 65px; height: 65px; border-radius: 50%; background: #222; 
+            border: 3px solid #FFD700; display: flex; align-items: center; 
+            justify-content: center; box-shadow: 0 6px 15px rgba(0,0,0,0.4); cursor: pointer;
+            font-size: 30px;
         }
-        .btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: #222;
-            border: 3px solid #FFD700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .btn img { width: 30px; height: 30px; }
+        .btn.active { background: #FFD700; }
     </style>
 </head>
 <body>
 
     <div class="search-container">
-        <input type="text" id="search-input" placeholder="地名・駅名で検索">
+        <input type="text" id="search-input" placeholder="場所を検索（例：大阪駅）">
         <button id="search-button">検索</button>
     </div>
 
     <div id="map"></div>
 
     <div class="controls">
-        <div class="btn" onclick="toggleFollow()">
-            <img src="https://cdn-icons-png.flaticon.com/512/9356/9356230.png" alt="追従">
-        </div>
+        <div id="follow-btn" class="btn">🎯</div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="script.js"></script>
+    <script>
+        // 地図の初期化（ノースアップ固定）
+        const map = L.map('map', { center: [34.882, 135.698], zoom: 16, zoomControl: false });
+
+        // サイクリングロードが青線で表示されるCyclOSMタイル
+        L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
+            maxZoom: 20,
+            attribution: '© CyclOSM'
+        }).addTo(map);
+
+        let userMarker, isFollowing = false;
+
+        // 位置情報の更新処理
+        map.on('locationfound', (e) => {
+            if (!userMarker) {
+                userMarker = L.circleMarker(e.latlng, {
+                    radius: 10, color: '#FFFFFF', weight: 3, fillOpacity: 1, fillColor: '#007AFF'
+                }).addTo(map);
+            } else {
+                userMarker.setLatLng(e.latlng);
+            }
+            if (isFollowing) {
+                map.setView(e.latlng, 17);
+            }
+        });
+        map.locate({ watch: true, enableHighAccuracy: true });
+
+        // 追従ボタンのクリックイベント
+        const followBtn = document.getElementById('follow-btn');
+        followBtn.onclick = () => {
+            isFollowing = !isFollowing;
+            followBtn.classList.toggle('active', isFollowing);
+            if (isFollowing && userMarker) {
+                map.setView(userMarker.getLatLng(), 17);
+            }
+        };
+
+        // 地図をドラッグしたら追従を自動解除
+        map.on('dragstart', () => {
+            isFollowing = false;
+            followBtn.classList.remove('active');
+        });
+
+        // 検索機能（JSONP方式で通信エラーを回避）
+        window.handleSearchResponse = function(data) {
+            if (data && data.length > 0) {
+                isFollowing = false;
+                followBtn.classList.remove('active');
+                const latlng = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                map.setView(latlng, 15);
+                L.marker(latlng).addTo(map).bindPopup(data[0].display_name).openPopup();
+                document.getElementById('search-input').blur();
+            } else {
+                alert("見つかりませんでした。");
+            }
+            const oldScript = document.getElementById('search-script');
+            if (oldScript) oldScript.remove();
+        };
+
+        function performSearch() {
+            const query = document.getElementById('search-input').value.trim();
+            if (!query) return;
+
+            const oldScript = document.getElementById('search-script');
+            if (oldScript) oldScript.remove();
+
+            const script = document.createElement('script');
+            script.id = 'search-script';
+            script.src = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&json_callback=handleSearchResponse`;
+            document.body.appendChild(script);
+        }
+
+        document.getElementById('search-button').onclick = performSearch;
+        document.getElementById('search-input').onkeypress = (e) => { if (e.key === 'Enter') performSearch(); };
+    </script>
 </body>
 </html>
