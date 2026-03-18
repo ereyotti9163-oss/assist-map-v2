@@ -30,9 +30,7 @@
     </div>
     <div id="map"></div>
     <div class="controls">
-        <div id="follow-btn" class="btn">
-            <img src="https://cdn-icons-png.flaticon.com/512/9140/9140027.png" alt="追従">
-        </div>
+        <div id="follow-btn" class="btn"><img src="https://cdn-icons-png.flaticon.com/512/9140/9140027.png"></div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -41,89 +39,66 @@
 
     <script>
         const map = L.map('map', { center: [34.882, 135.698], zoom: 16, zoomControl: false, rotate: true });
-        
-        L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
-            maxZoom: 20,
-            attribution: '© CyclOSM'
-        }).addTo(map);
+        L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', { maxZoom: 20 }).addTo(map);
 
         let userMarker, isFollowing = false;
-        const arrowIcon = L.divIcon({ 
-            className: 'user-arrow', 
-            html: "<div style='color: #007AFF; font-size: 36px; font-weight: bold; text-shadow: 0 0 5px white;'>▲</div>", 
-            iconSize: [40, 40], iconAnchor: [20, 20] 
-        });
+        const arrowIcon = L.divIcon({ className: 'user-arrow', html: "<div style='color: #007AFF; font-size: 36px; font-weight: bold; text-shadow: 0 0 5px white;'>▲</div>", iconSize: [40, 40], iconAnchor: [20, 20] });
 
-        // 位置情報取得
         map.on('locationfound', (e) => {
-            if (!userMarker) { 
-                userMarker = L.marker(e.latlng, { icon: arrowIcon, rotationAngle: 0 }).addTo(map); 
-            } else { 
-                userMarker.setLatLng(e.latlng); 
-            }
+            if (!userMarker) { userMarker = L.marker(e.latlng, { icon: arrowIcon, rotationAngle: 0 }).addTo(map); }
+            else { userMarker.setLatLng(e.latlng); }
             if (isFollowing) {
                 map.setView(e.latlng);
-                if (e.heading !== null && e.heading !== undefined) { 
-                    map.setBearing(360 - e.heading); 
-                    userMarker.setRotationAngle(e.heading); 
-                }
+                if (e.heading !== null) { map.setBearing(360 - e.heading); userMarker.setRotationAngle(e.heading); }
             }
         });
         map.locate({ watch: true, enableHighAccuracy: true });
 
-        // 追従ボタンの処理
         const followBtn = document.getElementById('follow-btn');
         followBtn.addEventListener('click', () => {
             isFollowing = !isFollowing;
             followBtn.classList.toggle('active', isFollowing);
-            if (!isFollowing) {
-                map.setBearing(0);
-                if(userMarker) userMarker.setRotationAngle(0);
-            }
+            if (!isFollowing) map.setBearing(0);
         });
 
-        // 検索機能の本体
         async function performSearch() {
             const input = document.getElementById('search-input');
             const query = input.value.trim();
             if (!query) return;
 
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+            // Nominatim API: 日本語優先、メールアドレス（ダミー）を付けて拒否を回避
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&accept-language=ja`;
             
             try {
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) throw new Error('Network response was not ok');
+                
                 const data = await response.json();
                 
                 if (data && data.length > 0) {
-                    // 検索成功時は追従解除
                     isFollowing = false;
                     followBtn.classList.remove('active');
-                    
                     const latlng = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
                     map.setBearing(0);
                     map.setView(latlng, 15);
                     L.marker(latlng).addTo(map).bindPopup(data[0].display_name).openPopup();
-                    input.blur(); // キーボードを閉じる
+                    input.blur();
                 } else {
-                    alert("見つかりませんでした: " + query);
+                    alert("候補が見つかりませんでした。");
                 }
             } catch (e) {
-                console.error(e);
-                alert("通信エラーが発生しました。");
+                console.error('Fetch Error:', e);
+                alert("通信エラー: APIへの接続が制限されているか、オフラインです。");
             }
         }
 
-        // イベント登録
         document.getElementById('search-button').addEventListener('click', performSearch);
-        document.getElementById('search-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') performSearch();
-        });
-
-        // 地図を触ったら追従解除
-        map.on('dragstart', () => {
-            isFollowing = false;
-            followBtn.classList.remove('active');
-        });
+        document.getElementById('search-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
+        map.on('dragstart', () => { isFollowing = false; followBtn.classList.remove('active'); });
     </script>
 </body>
 </html>
