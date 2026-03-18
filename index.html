@@ -26,7 +26,7 @@
 
     <div class="search-container">
         <input type="text" id="search-input" placeholder="地名・駅名を検索..." enterkeyhint="search">
-        <button id="search-button" type="button">検索</button>
+        <button id="search-button">検索</button>
     </div>
     <div id="map"></div>
     <div class="controls">
@@ -55,49 +55,50 @@
         map.locate({ watch: true, enableHighAccuracy: true });
 
         const followBtn = document.getElementById('follow-btn');
-        followBtn.addEventListener('click', () => {
+        followBtn.onclick = () => {
             isFollowing = !isFollowing;
             followBtn.classList.toggle('active', isFollowing);
             if (!isFollowing) map.setBearing(0);
-        });
+        };
 
-        async function performSearch() {
+        // 検索コールバック関数（JSONP用）
+        window.handleSearchResponse = function(data) {
             const input = document.getElementById('search-input');
-            const query = input.value.trim();
+            if (data && data.length > 0) {
+                isFollowing = false;
+                followBtn.classList.remove('active');
+                const latlng = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                map.setBearing(0);
+                map.setView(latlng, 15);
+                L.marker(latlng).addTo(map).bindPopup(data[0].display_name).openPopup();
+                input.blur();
+            } else {
+                alert("候補が見つかりませんでした。");
+            }
+            // 使用したスクリプトタグを削除
+            const oldScript = document.getElementById('search-script');
+            if (oldScript) oldScript.remove();
+        };
+
+        function performSearch() {
+            const query = document.getElementById('search-input').value.trim();
             if (!query) return;
 
-            // Nominatim API: 日本語優先、メールアドレス（ダミー）を付けて拒否を回避
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&accept-language=ja`;
-            
-            try {
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' }
-                });
+            // 既存の検索スクリプトがあれば削除
+            const oldScript = document.getElementById('search-script');
+            if (oldScript) oldScript.remove();
 
-                if (!response.ok) throw new Error('Network response was not ok');
-                
-                const data = await response.json();
-                
-                if (data && data.length > 0) {
-                    isFollowing = false;
-                    followBtn.classList.remove('active');
-                    const latlng = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-                    map.setBearing(0);
-                    map.setView(latlng, 15);
-                    L.marker(latlng).addTo(map).bindPopup(data[0].display_name).openPopup();
-                    input.blur();
-                } else {
-                    alert("候補が見つかりませんでした。");
-                }
-            } catch (e) {
-                console.error('Fetch Error:', e);
-                alert("通信エラー: APIへの接続が制限されているか、オフラインです。");
-            }
+            // JSONPによる検索リクエスト
+            const script = document.createElement('script');
+            script.id = 'search-script';
+            script.src = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&json_callback=handleSearchResponse`;
+            
+            script.onerror = () => alert("通信エラーが発生しました。");
+            document.body.appendChild(script);
         }
 
-        document.getElementById('search-button').addEventListener('click', performSearch);
-        document.getElementById('search-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
+        document.getElementById('search-button').onclick = performSearch;
+        document.getElementById('search-input').onkeypress = (e) => { if (e.key === 'Enter') performSearch(); };
         map.on('dragstart', () => { isFollowing = false; followBtn.classList.remove('active'); });
     </script>
 </body>
