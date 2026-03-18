@@ -9,16 +9,16 @@
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #fff; font-family: sans-serif; }
         #map { height: 100%; width: 100%; z-index: 1; }
         
-        /* 検索ボックス：上部に固定 */
+        /* 検索ボックス：サイズを少し小さく調整 */
         .search-container {
-            position: absolute; top: 15px; left: 10px; right: 10px; z-index: 1000;
-            display: flex; gap: 8px; background: rgba(255, 255, 255, 0.95);
-            padding: 10px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: absolute; top: 15px; left: 50px; right: 50px; z-index: 1000;
+            display: flex; gap: 5px; background: rgba(255, 255, 255, 0.95);
+            padding: 8px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
-        #search-input { flex-grow: 1; padding: 12px; border-radius: 8px; border: 2px solid #FFD700; font-size: 16px; outline: none; }
-        #search-button { padding: 10px 20px; background: #FFD700; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        #search-input { flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #FFD700; font-size: 14px; outline: none; }
+        #search-button { padding: 8px 12px; background: #FFD700; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
 
-        /* 現在地追従ボタン：右下に配置 */
+        /* 現在地追従ボタン */
         .controls { position: absolute; bottom: 40px; right: 20px; z-index: 1000; }
         .btn { 
             width: 65px; height: 65px; border-radius: 50%; background: #222; 
@@ -32,7 +32,7 @@
 <body>
 
     <div class="search-container">
-        <input type="text" id="search-input" placeholder="場所を検索（例：大阪駅）">
+        <input type="text" id="search-input" placeholder="場所を検索">
         <button id="search-button">検索</button>
     </div>
 
@@ -44,18 +44,17 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 地図の初期化（ノースアップ固定）
+        // 地図初期化（回転なし）
         const map = L.map('map', { center: [34.882, 135.698], zoom: 16, zoomControl: false });
 
-        // サイクリングロードが青線で表示されるCyclOSMタイル
+        // サイクリングロード強調タイル
         L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
-            maxZoom: 20,
-            attribution: '© CyclOSM'
+            maxZoom: 20, attribution: '© CyclOSM'
         }).addTo(map);
 
         let userMarker, isFollowing = false;
 
-        // 位置情報の更新処理
+        // 位置情報の更新
         map.on('locationfound', (e) => {
             if (!userMarker) {
                 userMarker = L.circleMarker(e.latlng, {
@@ -68,9 +67,10 @@
                 map.setView(e.latlng, 17);
             }
         });
+
         map.locate({ watch: true, enableHighAccuracy: true });
 
-        // 追従ボタンのクリックイベント
+        // 追従ボタン
         const followBtn = document.getElementById('follow-btn');
         followBtn.onclick = () => {
             isFollowing = !isFollowing;
@@ -80,13 +80,12 @@
             }
         };
 
-        // 地図をドラッグしたら追従を自動解除
         map.on('dragstart', () => {
             isFollowing = false;
             followBtn.classList.remove('active');
         });
 
-        // 検索機能（JSONP方式で通信エラーを回避）
+        // 検索機能（JSONP方式）
         window.handleSearchResponse = function(data) {
             if (data && data.length > 0) {
                 isFollowing = false;
@@ -105,10 +104,6 @@
         function performSearch() {
             const query = document.getElementById('search-input').value.trim();
             if (!query) return;
-
-            const oldScript = document.getElementById('search-script');
-            if (oldScript) oldScript.remove();
-
             const script = document.createElement('script');
             script.id = 'search-script';
             script.src = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&json_callback=handleSearchResponse`;
