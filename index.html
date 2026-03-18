@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>アシストマップ v2 (Cycle Edition)</title>
+    <title>アシストマップ v2 (Solid Cycle Line)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: white; }
@@ -81,28 +81,21 @@
             rotate: true 
         });
 
-        // 1. 基本地図レイヤー
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
-
-        // 2. 【重要】サイクリングロードを「青い線」で重ねるレイヤー
-        // これにより、木津川サイクリングロードなどが強調されます
-        L.tileLayer('https://tile.waymarkedtrails.org/cycling/{z}/{x}/{y}.png', {
-            maxZoom: 18,
-            opacity: 0.8,
-            attribution: 'Cycle routes © Waymarked Trails'
+        // 【修正】サイクリングロードが「実線」で表示されるタイルレイヤーを採用
+        // CyclOSMは自転車道が非常に見やすく、実線で強調されます
+        L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
+            maxZoom: 20,
+            attribution: '© CyclOSM | Map data © OpenStreetMap'
         }).addTo(map);
 
         let userMarker;
         let isFollowing = false;
 
-        // 進行方向を示す青い▲アイコン
         const arrowIcon = L.divIcon({
             className: 'custom-div-icon',
-            html: "<div style='color: #007AFF; font-size: 30px; transform: rotate(0deg); text-shadow: 0 0 3px white;'>▲</div>",
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
+            html: "<div style='color: #007AFF; font-size: 32px; font-weight: bold; text-shadow: 0 0 4px white;'>▲</div>",
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
         });
 
         function onLocationFound(e) {
@@ -119,8 +112,8 @@
             if (isFollowing) {
                 map.setView(e.latlng);
                 if (e.heading !== undefined && e.heading !== null) {
-                    map.setBearing(360 - e.heading); // 地図を回転（ヘディングアップ）
-                    userMarker.setRotationAngle(e.heading); // アイコンも回転
+                    map.setBearing(360 - e.heading);
+                    userMarker.setRotationAngle(e.heading);
                 }
             }
         }
@@ -136,7 +129,7 @@
                 if (userMarker) map.setView(userMarker.getLatLng(), 17);
             } else {
                 btn.style.background = '#222';
-                map.setBearing(0); // 北を上に戻す
+                map.setBearing(0);
                 if(userMarker) userMarker.setRotationAngle(0);
             }
         }
@@ -159,7 +152,6 @@
         }
 
         document.getElementById('search-button').onclick = searchLocation;
-        
         map.on('dragstart', () => {
             if (isFollowing) {
                 isFollowing = false;
