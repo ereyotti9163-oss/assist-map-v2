@@ -3,98 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>アシストマジック v2</title>
+    <title>アシストマップ v2</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #fff; font-family: sans-serif; }
-        #map { height: 100%; width: 100%; z-index: 1; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: white; }
+        #map { height: 100%; width: 100%; }
+        
+        /* 検索バー：少しだけ右に寄せて被りを最小限に */
         .search-container {
-            position: absolute; top: 15px; left: 10px; right: 10px; z-index: 1001;
-            display: flex; gap: 8px; background: rgba(255, 255, 255, 0.95);
-            padding: 10px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: absolute;
+            top: 10px;
+            left: 45px; 
+            right: 10px;
+            z-index: 1000;
+            display: flex;
+            gap: 5px;
         }
-        #search-input { flex-grow: 1; padding: 12px; border-radius: 8px; border: 2px solid #FFD700; font-size: 16px; outline: none; }
-        #search-button { padding: 10px 20px; background: #FFD700; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .controls { position: absolute; bottom: 40px; right: 20px; z-index: 1001; }
-        .btn { width: 65px; height: 65px; border-radius: 50%; background: #222; border: 3px solid #FFD700; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .btn img { width: 30px; height: 30px; filter: invert(1); }
-        .btn.active { background: #FFD700; }
-        .btn.active img { filter: invert(0); }
+        #search-input {
+            flex-grow: 1;
+            padding: 8px;
+            border-radius: 5px;
+            border: 2px solid #FFD700;
+            font-size: 16px;
+        }
+        #search-button {
+            padding: 8px 12px;
+            background: #FFD700;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #222;
+            border: 3px solid #FFD700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn img { width: 30px; height: 30px; }
     </style>
 </head>
 <body>
 
     <div class="search-container">
-        <input type="text" id="search-input" placeholder="場所を検索（例：大阪駅）" enterkeyhint="search">
+        <input type="text" id="search-input" placeholder="地名・駅名で検索">
         <button id="search-button">検索</button>
     </div>
+
     <div id="map"></div>
+
     <div class="controls">
-        <div id="follow-btn" class="btn"><img src="https://cdn-icons-png.flaticon.com/512/9140/9140027.png"></div>
+        <div class="btn" onclick="toggleFollow()">
+            <img src="https://cdn-icons-png.flaticon.com/512/9356/9356230.png" alt="追従">
+        </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://rawcdn.githack.com/Fenichel/Leaflet.RotatedMarker/ab67571d87e2b0222f7e0344d49826372d68969f/leaflet.rotatedMarker.js"></script>
-    <script src="https://rawcdn.githack.com/w8r/Leaflet.rotate/ecacb1a415442801e0506e75344d2d6ac65471d2/dist/leaflet-rotate-src.js"></script>
-
-    <script>
-        const map = L.map('map', { center: [34.882, 135.698], zoom: 16, zoomControl: false, rotate: true });
-        L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', { maxZoom: 20 }).addTo(map);
-
-        let userMarker, isFollowing = false;
-        const arrowIcon = L.divIcon({ className: 'user-arrow', html: "<div style='color: #007AFF; font-size: 36px; font-weight: bold; text-shadow: 0 0 5px white;'>▲</div>", iconSize: [40, 40], iconAnchor: [20, 20] });
-
-        map.on('locationfound', (e) => {
-            if (!userMarker) { userMarker = L.marker(e.latlng, { icon: arrowIcon }).addTo(map); }
-            else { userMarker.setLatLng(e.latlng); }
-            if (isFollowing) {
-                map.setView(e.latlng);
-                if (e.heading) { map.setBearing(360 - e.heading); userMarker.setRotationAngle(e.heading); }
-            }
-        });
-        map.locate({ watch: true, enableHighAccuracy: true });
-
-        const followBtn = document.getElementById('follow-btn');
-        followBtn.onclick = () => {
-            isFollowing = !isFollowing;
-            followBtn.classList.toggle('active', isFollowing);
-            if (!isFollowing) map.setBearing(0);
-        };
-
-        // JSONP用のコールバック関数
-        window.handlePhotonResponse = function(data) {
-            const input = document.getElementById('search-input');
-            if (data && data.features && data.features.length > 0) {
-                isFollowing = false;
-                followBtn.classList.remove('active');
-                const [lng, lat] = data.features[0].geometry.coordinates;
-                map.setBearing(0);
-                map.setView([lat, lng], 15);
-                L.marker([lat, lng]).addTo(map).bindPopup(data.features[0].properties.name || "検索結果").openPopup();
-                input.blur();
-            } else {
-                alert("場所が見つかりませんでした。");
-            }
-            const script = document.getElementById('photon-script');
-            if (script) script.remove();
-        };
-
-        function performSearch() {
-            const query = document.getElementById('search-input').value.trim();
-            if (!query) return;
-
-            const script = document.createElement('script');
-            script.id = 'photon-script';
-            // Photon APIをJSONP形式で呼び出す
-            script.src = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=1&lang=ja&callback=handlePhotonResponse`;
-            
-            script.onerror = () => alert("通信制限により検索できません。ブラウザのセキュリティ設定を確認してください。");
-            document.body.appendChild(script);
-        }
-
-        document.getElementById('search-button').onclick = performSearch;
-        document.getElementById('search-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
-        map.on('dragstart', () => { isFollowing = false; followBtn.classList.remove('active'); });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
