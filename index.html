@@ -9,22 +9,30 @@
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #fff; font-family: sans-serif; }
         #map { height: 100%; width: 100%; z-index: 1; }
         
-        /* 検索ボックス：サイズを少し小さく調整 */
+        /* 検索ボックス：幅を60%に制限し、中央寄せ */
         .search-container {
-            position: absolute; top: 15px; left: 50px; right: 50px; z-index: 1000;
-            display: flex; gap: 5px; background: rgba(255, 255, 255, 0.95);
-            padding: 8px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: absolute; top: 15px; left: 20%; right: 20%; z-index: 1000;
+            display: flex; gap: 4px; background: rgba(255, 255, 255, 0.9);
+            padding: 5px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid #FFD700;
         }
-        #search-input { flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #FFD700; font-size: 14px; outline: none; }
-        #search-button { padding: 8px 12px; background: #FFD700; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        #search-input { 
+            flex-grow: 1; padding: 6px; border-radius: 4px; border: none; 
+            font-size: 14px; outline: none; width: 10px; /* 最小幅を抑える */
+        }
+        #search-button { 
+            padding: 6px 10px; background: #FFD700; border: none; 
+            border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; 
+            white-space: nowrap;
+        }
 
         /* 現在地追従ボタン */
         .controls { position: absolute; bottom: 40px; right: 20px; z-index: 1000; }
         .btn { 
-            width: 65px; height: 65px; border-radius: 50%; background: #222; 
+            width: 60px; height: 60px; border-radius: 50%; background: #222; 
             border: 3px solid #FFD700; display: flex; align-items: center; 
             justify-content: center; box-shadow: 0 6px 15px rgba(0,0,0,0.4); cursor: pointer;
-            font-size: 30px;
+            font-size: 28px;
         }
         .btn.active { background: #FFD700; }
     </style>
@@ -32,7 +40,7 @@
 <body>
 
     <div class="search-container">
-        <input type="text" id="search-input" placeholder="場所を検索">
+        <input type="text" id="search-input" placeholder="検索...">
         <button id="search-button">検索</button>
     </div>
 
@@ -44,40 +52,32 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 地図初期化（回転なし）
         const map = L.map('map', { center: [34.882, 135.698], zoom: 16, zoomControl: false });
 
-        // サイクリングロード強調タイル
         L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
             maxZoom: 20, attribution: '© CyclOSM'
         }).addTo(map);
 
         let userMarker, isFollowing = false;
 
-        // 位置情報の更新
         map.on('locationfound', (e) => {
             if (!userMarker) {
                 userMarker = L.circleMarker(e.latlng, {
-                    radius: 10, color: '#FFFFFF', weight: 3, fillOpacity: 1, fillColor: '#007AFF'
+                    radius: 9, color: '#FFFFFF', weight: 3, fillOpacity: 1, fillColor: '#007AFF'
                 }).addTo(map);
             } else {
                 userMarker.setLatLng(e.latlng);
             }
-            if (isFollowing) {
-                map.setView(e.latlng, 17);
-            }
+            if (isFollowing) { map.setView(e.latlng, 17); }
         });
 
         map.locate({ watch: true, enableHighAccuracy: true });
 
-        // 追従ボタン
         const followBtn = document.getElementById('follow-btn');
         followBtn.onclick = () => {
             isFollowing = !isFollowing;
             followBtn.classList.toggle('active', isFollowing);
-            if (isFollowing && userMarker) {
-                map.setView(userMarker.getLatLng(), 17);
-            }
+            if (isFollowing && userMarker) { map.setView(userMarker.getLatLng(), 17); }
         };
 
         map.on('dragstart', () => {
@@ -85,7 +85,6 @@
             followBtn.classList.remove('active');
         });
 
-        // 検索機能（JSONP方式）
         window.handleSearchResponse = function(data) {
             if (data && data.length > 0) {
                 isFollowing = false;
