@@ -7,16 +7,15 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #f0f0f0; font-family: sans-serif; }
-        #map { height: 100%; width: 100%; }
+        #map { height: 100%; width: 100%; z-index: 1; }
         .search-container {
-            position: absolute; top: 15px; left: 10px; right: 10px; z-index: 1000;
-            display: flex; gap: 8px; background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(5px); padding: 8px; border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            position: absolute; top: 15px; left: 10px; right: 10px; z-index: 1001;
+            display: flex; gap: 8px; background: rgba(255, 255, 255, 0.95);
+            padding: 10px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-        #search-input { flex-grow: 1; padding: 10px; border-radius: 8px; border: 2px solid #FFD700; font-size: 16px; outline: none; }
-        #search-button { padding: 10px 15px; background: #FFD700; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .controls { position: absolute; bottom: 40px; right: 20px; z-index: 1000; }
+        #search-input { flex-grow: 1; padding: 12px; border-radius: 8px; border: 2px solid #FFD700; font-size: 16px; outline: none; -webkit-appearance: none; }
+        #search-button { padding: 10px 20px; background: #FFD700; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; min-width: 70px; }
+        .controls { position: absolute; bottom: 40px; right: 20px; z-index: 1001; }
         .btn { width: 65px; height: 65px; border-radius: 50%; background: #222; border: 3px solid #FFD700; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 15px rgba(0,0,0,0.4); cursor: pointer; }
         .btn img { width: 32px; height: 32px; filter: invert(1); }
         .btn.active { background: #FFD700; }
@@ -26,11 +25,15 @@
 <body>
 
     <div class="search-container">
-        <input type="text" id="search-input" placeholder="地名・駅名を検索...">
-        <button id="search-button">検索</button>
+        <input type="text" id="search-input" placeholder="地名・駅名を検索..." enterkeyhint="search">
+        <button id="search-button" type="button">検索</button>
     </div>
     <div id="map"></div>
-    <div class="controls"><div id="follow-btn" class="btn" onclick="toggleFollow()"><img src="https://cdn-icons-png.flaticon.com/512/9140/9140027.png"></div></div>
+    <div class="controls">
+        <div id="follow-btn" class="btn">
+            <img src="https://cdn-icons-png.flaticon.com/512/9140/9140027.png" alt="追従">
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://rawcdn.githack.com/Fenichel/Leaflet.RotatedMarker/ab67571d87e2b0222f7e0344d49826372d68969f/leaflet.rotatedMarker.js"></script>
@@ -38,59 +41,89 @@
 
     <script>
         const map = L.map('map', { center: [34.882, 135.698], zoom: 16, zoomControl: false, rotate: true });
-        L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', { maxZoom: 20 }).addTo(map);
+        
+        L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
+            maxZoom: 20,
+            attribution: '© CyclOSM'
+        }).addTo(map);
 
         let userMarker, isFollowing = false;
-        const arrowIcon = L.divIcon({ className: 'user-arrow', html: "<div style='color: #007AFF; font-size: 36px; font-weight: bold; text-shadow: 0 0 5px white;'>▲</div>", iconSize: [40, 40], iconAnchor: [20, 20] });
+        const arrowIcon = L.divIcon({ 
+            className: 'user-arrow', 
+            html: "<div style='color: #007AFF; font-size: 36px; font-weight: bold; text-shadow: 0 0 5px white;'>▲</div>", 
+            iconSize: [40, 40], iconAnchor: [20, 20] 
+        });
 
+        // 位置情報取得
         map.on('locationfound', (e) => {
-            if (!userMarker) { userMarker = L.marker(e.latlng, { icon: arrowIcon, rotationAngle: 0 }).addTo(map); }
-            else { userMarker.setLatLng(e.latlng); }
+            if (!userMarker) { 
+                userMarker = L.marker(e.latlng, { icon: arrowIcon, rotationAngle: 0 }).addTo(map); 
+            } else { 
+                userMarker.setLatLng(e.latlng); 
+            }
             if (isFollowing) {
                 map.setView(e.latlng);
-                if (e.heading !== null) { map.setBearing(360 - e.heading); userMarker.setRotationAngle(e.heading); }
+                if (e.heading !== null && e.heading !== undefined) { 
+                    map.setBearing(360 - e.heading); 
+                    userMarker.setRotationAngle(e.heading); 
+                }
             }
         });
         map.locate({ watch: true, enableHighAccuracy: true });
 
-        function toggleFollow() {
+        // 追従ボタンの処理
+        const followBtn = document.getElementById('follow-btn');
+        followBtn.addEventListener('click', () => {
             isFollowing = !isFollowing;
-            document.getElementById('follow-btn').classList.toggle('active', isFollowing);
-            if (!isFollowing) map.setBearing(0);
-        }
+            followBtn.classList.toggle('active', isFollowing);
+            if (!isFollowing) {
+                map.setBearing(0);
+                if(userMarker) userMarker.setRotationAngle(0);
+            }
+        });
 
-        async function searchLocation() {
-            const query = document.getElementById('search-input').value;
+        // 検索機能の本体
+        async function performSearch() {
+            const input = document.getElementById('search-input');
+            const query = input.value.trim();
             if (!query) return;
-            
-            // Nominatim APIへのリクエスト（User-Agentを指定してエラー回避）
+
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
             
             try {
-                const response = await fetch(url, {
-                    headers: { 'Accept-Language': 'ja' } // 日本語の結果を優先
-                });
+                const response = await fetch(url);
                 const data = await response.json();
                 
                 if (data && data.length > 0) {
+                    // 検索成功時は追従解除
                     isFollowing = false;
-                    document.getElementById('follow-btn').classList.remove('active');
+                    followBtn.classList.remove('active');
+                    
                     const latlng = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
                     map.setBearing(0);
                     map.setView(latlng, 15);
                     L.marker(latlng).addTo(map).bindPopup(data[0].display_name).openPopup();
+                    input.blur(); // キーボードを閉じる
                 } else {
-                    alert("見つかりませんでした。");
+                    alert("見つかりませんでした: " + query);
                 }
             } catch (e) {
                 console.error(e);
-                alert("検索中にエラーが発生しました。通信状況を確認してください。");
+                alert("通信エラーが発生しました。");
             }
         }
 
-        document.getElementById('search-button').onclick = searchLocation;
-        document.getElementById('search-input').onkeypress = (e) => { if(e.key === 'Enter') searchLocation(); };
-        map.on('dragstart', () => { isFollowing = false; document.getElementById('follow-btn').classList.remove('active'); });
+        // イベント登録
+        document.getElementById('search-button').addEventListener('click', performSearch);
+        document.getElementById('search-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+
+        // 地図を触ったら追従解除
+        map.on('dragstart', () => {
+            isFollowing = false;
+            followBtn.classList.remove('active');
+        });
     </script>
 </body>
 </html>
